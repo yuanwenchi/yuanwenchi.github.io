@@ -1,0 +1,365 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link rel="stylesheet" href="./main.css" type="text/css" />
+</head>
+<body>
+<div id="TOC">
+<h1 class="title"> </h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+
+<ul>
+<li><a href="#vatics-bsp">VATICS BSP</a><ul>
+<li><a href="#software-development-environment-setup">1.Software Development Environment Setup</a><ul>
+<li><a href="#file-system">1.1 File System</a></li>
+<li><a href="#toolchain">1.2 Toolchain</a></li>
+</ul></li>
+<li><a href="#partitions-and-boot-flow">2. Partitions and Boot Flow</a><ul>
+<li><a href="#partitions">2.1 Partitions</a></li>
+<li><a href="#boot-flow">2.2 Boot Flow</a></li>
+</ul></li>
+<li><a href="#component">3. Component</a><ul>
+<li><a href="#bootloader">3.1 Bootloader</a></li>
+<li><a href="#kernel">Kernel</a></li>
+<li><a href="#rootfs-file-system">ROOTFS FILE SYSTEM</a></li>
+</ul></li>
+<li><a href="#upgrade">4. Upgrade</a><ul>
+<li><a href="#write-bootloader">4.1 write Bootloader</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+</div>
+</div>
+
+<h1 id="vatics-bsp"><a href="#vatics-bsp">VATICS BSP</a></h1>
+<h2 id="software-development-environment-setup"><a href="#software-development-environment-setup">1.Software Development Environment Setup</a></h2>
+<p>Pre-built , prepare tools for making binary image</p>
+<h3 id="file-system"><a href="#file-system">1.1 File System</a></h3>
+<p>Pesaro BSP use SquashFS as default file system. SquashFS can be found from &quot;03.Tools/SquashFS&quot;</p>
+<p>Install :</p>
+<ul>
+<li><p>Compiling SquashFS Tools</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">sudo</span> apt-get install zlib1g-dev libssl-dev liblzma-dev</code></pre></li>
+<li><p>Decompress package</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">tar</span> -zxvf squashfs4.2.tar.gz  
+<span class="kw">cd</span> squashfs4.2/squashfs-tools</code></pre></li>
+<li><p>&quot;XZ&quot; compression support <strong>(Improve compression ratio)</strong></p>
+<blockquote>
+<p>Users can modify the makefile as in “squashfs4.2/squashfs-tools” folder to enable “XZ” compression feature during image generation. Although “XZ” compression provides a higher compression ratio, however, it requires more decompression time as compared to default “GZIP” compression option due to its complexity.</p>
+<blockquote>
+<p>XZ_SUPPORT = 1</p>
+</blockquote>
+</blockquote></li>
+<li><p>Install SquashFS package</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">make</span> 
+<span class="kw">sudo</span> make install</code></pre></li>
+<li><p><strong>After installing the SquashFS tool successfully, the “mksquashfs” and “unsquashfs” applications can be found in the “/usr/local/bin” folder.</strong></p></li>
+</ul>
+<h3 id="toolchain"><a href="#toolchain">1.2 Toolchain</a></h3>
+<p>The SDK provides toolchain in “01.BSP/Toolchain” folder.<br />The pre-built executable toolchain binaries that support both 32-bit and 64-bit operating systems are available in <strong>“01.BSP/Toolchain/binary”</strong> folder. Please make sure that the correct version is used.<br /><em>Please refer to http://buildroot.uclibc.org for more information on building the toolchain.</em></p>
+<p>Install :</p>
+<ul>
+<li><p>Need package</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">sudo</span> apt-get install build-essential bison flex gettext libncurses5-dev texinfo autoconf automake libtool</code></pre></li>
+<li><p>Install the toolchain (example intall /opt)</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">cd</span> 01.BSP/ToolChain/binary
+<span class="kw">sudo</span> tar -jxvf vtcs_toolchain_32bit.tar.bz2 -C /opt
+<span class="kw">export</span> <span class="ot">PATH=</span>/opt/vtcs_toolchain/arm-eabi-uclibc/usr/bin:<span class="ot">$PATH</span></code></pre></li>
+<li><p>Toolchain compiling Pesaro need some environment variables. such as TOOLSDIR, KERNELINC, and KERNELSRC macro.</p>
+<blockquote>
+<p>Maybe you need amend it and source it.</p>
+<blockquote>
+<p>source devel_pesaro</p>
+</blockquote>
+</blockquote></li>
+</ul>
+<h2 id="partitions-and-boot-flow"><a href="#partitions-and-boot-flow">2. Partitions and Boot Flow</a></h2>
+<h3 id="partitions"><a href="#partitions">2.1 Partitions</a></h3>
+<p>z Partition table</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Offset</th>
+<th align="left">Node</th>
+<th align="left">Size(KB)</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">0x00000000</td>
+<td align="left">mtd0</td>
+<td align="left">128</td>
+<td align="left">Bootloader</td>
+</tr>
+<tr class="even">
+<td align="left">0x00020000</td>
+<td align="left">mtd0</td>
+<td align="left">128</td>
+<td align="left">U-Boot Environment</td>
+</tr>
+<tr class="odd">
+<td align="left">0x00040000</td>
+<td align="left">mtd1</td>
+<td align="left">2816</td>
+<td align="left">Kernel</td>
+</tr>
+<tr class="even">
+<td align="left">0x00300000</td>
+<td align="left">mtd2</td>
+<td align="left">2048</td>
+<td align="left">Root file System(SquashFS)</td>
+</tr>
+<tr class="odd">
+<td align="left">0x00500000</td>
+<td align="left">mtd3</td>
+<td align="left">11264</td>
+<td align="left">Writable file system(JFFS2)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><p>Bootloader</p>
+<p>The bootloader consists of the following three parts:</p>
+<ul>
+<li><p>Boot parameters :</p>
+<blockquote>
+<p>These parameters are read by <strong>boot ROM code</strong> to provide the information for boot ROM code to check the validity of this bootloader. These parameters also provide the <strong>L1 loader base address and size</strong> information for the boot ROM code, the general configuration data which used to setup IO register during booting can be found in this section, too.</p>
+</blockquote></li>
+<li><p>L1 Loader :</p>
+<blockquote>
+<p>The L1 loader will load the U-Boot image from the Flash memory to DRAM and execute the U-Boot in the DRAM.</p>
+</blockquote></li>
+<li><p>U-Boot : U-Boot binary image</p></li>
+</ul></li>
+<li><p>U-boot Environment</p>
+<blockquote>
+<p>The U-Boot stores the environment variables in this partition and pass some of them to Linux kernel. Users can use “printenv” command to check current environment variables under U-Boot command prompt.</p>
+</blockquote></li>
+<li>Linux kernel</li>
+<li><p>Root File System</p>
+<blockquote>
+<p>This partition is for root file system image. The Pesaro BSP uses SquashFS as the default root file system.</p>
+</blockquote></li>
+<li><p>Writable File System</p>
+<blockquote>
+<p>This partition is formatted as JFFS2 on the SPI NOR Flash of EVB board and mounted at “/mnt/flash” by default (please refer to “/etc/fstab”). Since JFFS2 is a writable file system, user-developed applications and configurations can be put here for iterative tests. For ease of maintenance, users can mount “/etc” into this JFFS2 partition. For example, the following command can be used to achieve this purpose.</p>
+</blockquote></li>
+</ul>
+<h3 id="boot-flow"><a href="#boot-flow">2.2 Boot Flow</a></h3>
+<blockquote>
+<ol style="list-style-type: decimal">
+<li>After resetting the system, the built-in boot ROM code in base address 0x00000000 will be fetched and executed. It will check for <strong>two magic numbers</strong> that are located at the starting address of Flash sector. If these magic numbers are valid, boot ROM code will access the data of that sector.</li>
+<li>Boot ROM code will initialize the boot device in EVB according to boot parameters.<br /><strong>boot flow step1&amp;2</strong><br /><img src="../src/boot_step1_2.bmp" alt="boot flow step1-2" /></li>
+<li>Boot ROM code will load L1 Loader to internal SRAM and execute the L1 Loader.</li>
+<li>The L1 loader will initial the external DDR3 SDRAM and move itself to external DDR3 SDRAM. The starting address of DDR3 SDRAM is also the base address of DDR3 SDRAM with identical offset.<br /><strong>[boot flow step3&amp;4]</strong><br /><img src="../src/boot_step3_4.bmp" alt="boot flow step3-4" /></li>
+<li>L1 Loader will re-map the DDR3 SDRAM and boot ROM address by interchanging the base address of them. After remapping, CPU will execute the L1 loader in DDR3 SDRAM<br /><strong>[boot flow step5]</strong><br /><img src="../src/boot_step5.bmp" alt="boot flow step5" /></li>
+<li>L1 Loader will load U-Boot from SPI NOR Flash to DDR3 SDRAM and then jump to the starting address of U-Boot in DDR3 SDRAM to execute it.<br /><strong>[boot flow step6]</strong><br /><img src="../src/boot_step6.bmp" alt="boot flow step6" /></li>
+<li>U-Boot will boot into Linux kernel and pass the parameters which are set in U-Boot environment to Linux kernel.</li>
+</ol>
+</blockquote>
+<h2 id="component"><a href="#component">3. Component</a></h2>
+<h3 id="bootloader"><a href="#bootloader">3.1 Bootloader</a></h3>
+<p>Generating a bootloader image :</p>
+<ol style="list-style-type: decimal">
+<li><a href="#l1-generation">L1 image generation</a></li>
+<li><a href="#u-boot-generation">U-boot image generation</a></li>
+<li><a href="#bootloader-generation">bootloader image generation</a>(include L1 and U-boot)</li>
+</ol>
+<h4 id="l1-generation"><a href="#l1-generation">L1 generation</a></h4>
+<ul>
+<li><p>configuration</p>
+<p>L1 loader is used to configure DRAM timing, DRAM capacity and so on.</p>
+<p>The loader configuration file is located at “Loader/configs” folder.</p>
+<blockquote>
+<p>There are several configuration files for hardware requirements. Please select the corresponding configuration file in “Loader/configs” folder for system <strong>clock, DDR type or DRAM size</strong> of EVB.</p>
+</blockquote>
+<table>
+<caption>Table Model Information</caption>
+<thead>
+<tr class="header">
+<th align="left">Model Name</th>
+<th align="left">System Clock</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">M330C</td>
+<td align="left">150MHz</td>
+</tr>
+<tr class="even">
+<td align="left">M332C</td>
+<td align="left">150MHz</td>
+</tr>
+<tr class="odd">
+<td align="left">M385C</td>
+<td align="left">200MHz</td>
+</tr>
+<tr class="even">
+<td align="left">M388C</td>
+<td align="left">200MHz</td>
+</tr>
+</tbody>
+</table></li>
+<li><p>Build Image</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">cd</span> Loader/
+<span class="kw">make</span> config=configs/[system_clock]mhz.ddr3.[dram_size]g.config</code></pre></li>
+</ul>
+<h4 id="u-boot-generation"><a href="#u-boot-generation">U-boot generation</a></h4>
+<ul>
+<li><p>configuration</p>
+<p>The default configuration is located at “U-Boot/include/configs/m3c_evb.h” for M3C EVB.</p></li>
+<li><p>Build Image</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">cd</span> U-Boot
+<span class="kw">make</span> distclean
+<span class="kw">make</span> [Model_Config]
+<span class="kw">make</span></code></pre></li>
+<li><p>Quick test</p>
+<blockquote>
+<p>U-Boot provides a quick test tool to check the basic functionalities of hardware I/O connections.</p>
+</blockquote></li>
+</ul>
+<h4 id="bootloader-generation"><a href="#bootloader-generation">Bootloader generation</a></h4>
+<p>ImageGenerator is used to generate the bootloader image.</p>
+<ol style="list-style-type: decimal">
+<li>It will generate the <strong>boot parameters</strong> from the configuration files (i.e. M3C_SF.config for SPI NOR Flash)</li>
+<li>and combine the images of <strong>L1 loader</strong> and <strong>U-Boot</strong> to one bootloader image.</li>
+</ol>
+<ul>
+<li><p>configuration</p>
+The default configuration file for each bootloader image is located in “ImageGenerator/ImageGenerator_App” folder. The configuration can be found at “UART/M3C_UART.config” for UART boot, “SD/M3C_SD.config” for SD card boot and “SF/M3C_SF.config” for SPI NOR Flash boot.<br />ImageGenerator is used for generating boot parameters to the bootloader image according to these configuration files.
+<ol style="list-style-type: decimal">
+<li>uart-boot use booting from uart</li>
+<li>sd-boot use booting from sd</li>
+<li>sf-boot use booting from SPI Nor Flash</li>
+</ol></li>
+<li><p>Build ImageGenerator</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">cd</span> ImageGenerator/ImageGenerator_App
+<span class="kw">make</span> clean
+<span class="kw">make</span></code></pre>
+<blockquote>
+<p>After compilation, the file imagegenerator will be generated in “ImageGenerator_App” folder.</p>
+</blockquote></li>
+<li><p>Build Image</p>
+<p>Copy the generated loader image and U-Boot image to “ImageGenerator/ImageGenerator_App” folder such as loader-sd.bin, loader-sf.bin, and u-boot.bin</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="co"># generate SPI NOR Flash boot</span>
+<span class="kw">./imagegenerator</span> -t sf -c ./SD/M3C_SD.config -l loader-sd.bin -u u-boot.bin -o sd_bootimage.bin</code></pre></li>
+</ul>
+<h3 id="kernel"><a href="#kernel">Kernel</a></h3>
+<ul>
+<li><p>configurations</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">tar</span> –jxvf pesaro_kernel_3.10_r[version].tar.bz2
+<span class="kw">cd</span> pesaro_kernel_3.10
+<span class="kw">make</span> m3c_defconfig</code></pre>
+<ul>
+<li><p>system clock</p>
+<p>arch/arm/boot/dts/msc.dtsi</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp">hclk: ahb_sclk@200M {
+compatible = <span class="st">&quot;fixed-clock&quot;</span>;
+<span class="er">#clock-cells = &lt;0&gt;;</span>
+clock-frequency = &lt;<span class="dv">200000000</span>&gt;;
+clock-output-name = <span class="st">&quot;ahb_sclk&quot;</span>;
+};</code></pre></li>
+<li><p>SPI NOR Flash Partition</p>
+<p>The partition configuration is also defined in “arch/arm/boot/dts/m3c_evb.dts” file<br />The “reg = <offset size>” line in the following example is used to set the address offset and disk size</p>
+<pre class="sourceCode c"><code class="sourceCode c">partition@<span class="dv">0</span> {
+label = <span class="st">&quot;U-Boot&quot;</span>;
+reg = &lt;<span class="bn">0x00000000</span> <span class="bn">0x00040000</span>&gt;;
+};
+partition@<span class="dv">1</span> {
+label = <span class="st">&quot;Kernel&quot;</span>;
+reg = &lt;<span class="bn">0x00040000</span> <span class="bn">0x002C0000</span>&gt;;
+};
+partition@<span class="dv">2</span> {
+label = <span class="st">&quot;Rootfs&quot;</span>;
+reg = &lt;<span class="bn">0x00300000</span> <span class="bn">0x00200000</span>&gt;;
+};
+partition@<span class="dv">3</span> {
+label = <span class="st">&quot;Jffs2&quot;</span>;
+reg = &lt;<span class="bn">0x00500000</span> <span class="bn">0x00B00000</span>&gt;;
+};</code></pre></li>
+<li><p>XZ Compressed File System</p>
+<blockquote>
+<p>The default compression algorithm used for file system compression in Linux kernel is “GZIP”. Users can change it to “XZ” compression algorithm according to the following steps in menuconfig.</p>
+</blockquote>
+<pre><code>Step 1. File systems ---&gt;
+Step 2. Miscellaneous filesystems ---&gt;
+Step 3. [*] Include support for XZ compressed file systems</code></pre></li>
+</ul></li>
+<li><p>Build Image</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">make</span>
+<span class="kw">cat</span> arch/arm/boot/zImage arch/arm/boot/dts/m3c_evb.dtb <span class="kw">&gt;</span> zImage.dtb</code></pre>
+<blockquote>
+<p>After the building process is completed, two binary files “zImage” and “m3c_evb.dtb” will be generated. The device tree blob (.dtb) is a binary file used by Linux kernel to maintain the hardware under this platform. The device tree is a data structure for describing the hardware. Users can configure the device tree by editing the device tree text file “arch/arm/boot/dts/m3c_evb.dts”. After that, users need to build and generate the “zImage.dtb” file again as the following steps to make these changes effective.</p>
+</blockquote>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">make</span> dtbs
+<span class="kw">cat</span> arch/arm/boot/zImage arch/arm/boot/dts/m3c_evb.dtb <span class="kw">&gt;</span> zImage.dtb</code></pre></li>
+</ul>
+<h3 id="rootfs-file-system"><a href="#rootfs-file-system">ROOTFS FILE SYSTEM</a></h3>
+<p>The root file system is usually mounted as a read-only file system (SquashFS).</p>
+<h4 id="build-image"><a href="#build-image">Build Image</a></h4>
+<p>Pesaro SDK includes a root file system that supports basic embedded Linux operations. Commonly used tools and utilities (e.g. Busybox, ip_table and MTD utilities, etc.) can be found in this root file system.</p>
+<blockquote>
+<p>If users want to create or remove files and folders in root file system, they are able to perform those actions in the <strong>“static”</strong> directory. These files or folders will be included in a root file system image during image building.</p>
+</blockquote>
+<ul>
+<li>generation</li>
+</ul>
+<p>Must use root</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">cd</span> vtcs_rootfs
+<span class="kw">./make_rootfs.sh</span></code></pre>
+<ul>
+<li><p>Quick generating</p>
+<ul>
+<li><p>Extracting</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">fakeroot</span> -s backup.environ unsquashfs -d tmp_rootfs rootfs.sqfs</code></pre></li>
+<li>Modified file</li>
+<li><p>generate a new root file</p>
+<pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">fakeroot</span> -i backup.environ -s backup.environ mksquashfs tmp_rootfs new_rootfs.sqfs -all-root</code></pre></li>
+</ul></li>
+</ul>
+<h2 id="upgrade"><a href="#upgrade">4. Upgrade</a></h2>
+<h3 id="write-bootloader"><a href="#write-bootloader">4.1 write Bootloader</a></h3>
+<p>Bootloader contains SPI NOR Flash, SD card and UART.<br />If the correct bootloader image is not available in this partition, users can use SD card booting or UART booting</p>
+<ul>
+<li><p>update SF Boot</p></li>
+<li><p>update UART Boot</p>
+<p>M3C supports “UART boot” by using “UART 0” for booting. The configuration of U-Boot needs to be modified before generating bootloader.</p>
+<p>Please follow the steps below to boot from UART.</p>
+<ol style="list-style-type: decimal">
+<li>Connect UART console to UART 0 of EVB.</li>
+<li>Use serial terminal program such as “Tera Term” to send bootloader image into EVB by UART.</li>
+<li>The boot message will show on the console when the image transfer is complete.</li>
+</ol>
+<p><strong>TODO: How do that?</strong></p></li>
+<li><p>update SD Boot</p></li>
+</ul>
+</body>
+</html>
